@@ -76,7 +76,7 @@ _YOUTUBEDL_OPTS_ = {
 }
 
 
-def download_mp3(url, destination='./music/'):
+def download_mp3(url, destination='./'):
     '''
     Synchronous download from YouTube
     '''

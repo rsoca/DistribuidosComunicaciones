@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import sys
@@ -6,22 +6,28 @@ import Ice
 Ice.loadSlice('trawlnet.ice')
 import TrawlNet
 
+'''
+Cliente
+'''
 
 class Cliente(Ice.Application):
-    def main(self, current=None):
-        
-        print('// Bienvenido a la aplicacion para descargar musica de Youtube //')
-
-
+    '''
+    Client
+    '''
     def run(self, argv):
-
-        main()
-
+        '''
+        Run
+        '''
+        print('/////////////////////////////////////////////////////////////////')
+        print('// Bienvenido a la aplicacion para descargar musica de Youtube //')
+        print('/////////////////////////////////////////////////////////////////')
         proxy = self.communicator().stringToProxy(argv[1])
         orchestrator = TrawlNet.OrchestratorPrx.checkedCast(proxy)
-        print(orchestrator.downloadTask(argv[2]))
 
+        if not orchestrator:
+            raise RuntimeError('Proxy no valido')
 
+        orchestrator.downloadTask(argv[2])
         return 0
 
 sys.exit(Cliente().main(sys.argv))

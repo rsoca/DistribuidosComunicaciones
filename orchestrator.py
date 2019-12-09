@@ -27,25 +27,38 @@ class Orchestrator(TrawlNet.Orchestrator):
         '''
         self.downloader = downloader
 
-class Server(Ice.Application):
+class Server(Ice.Application):   #pylint: disable=R0903
 
     '''
-    Server orchestrator
+    Servidor
     '''
+    files = {}
     def run(self, argv):
 
         '''
         Iniciar server orchestrator
         '''
+        key = "IceStorm.TopicManager.Proxy"
+        topic_name = "UpdateEvents"
+        topic_orchestrator = "OrchestratorSync"
+        qos_orch = {}
+        qos = {}
+        proxy = self.communicator().propertyToProxy(key)
+        print("Using IceStorm in '%s'" % key)
+
         broker = self.communicator()
-        proxy_downloader = broker.stringToProxy(argv[1])
-        downloader = TrawlNet.DownloaderPrx.checkedCast(proxy_downloader)
+        proxy = broker.stringToProxy(argv[1])
+        downloader = TrawlNet.DownloaderPrx.checkedCast(proxy)
         if not downloader:
             raise RuntimeError('No esta instanciado el downlader')
+
         servidor = Orchestrator(downloader)
         adapter = broker.createObjectAdapter("OrchestratorAdapter")
-        proxy = adapter.add(servidor, broker.stringToIdentity("orchestrator"))
-        print("Conexion a orquestador :",proxy)
+        
+        proxy_orchestrator = adapter.add(orchestrator, broker.stringToIdentity("orchestrator"))
+        orchestrator.setTopicandDownloader(downloader_instance, topicorch, proxy_orchestrator)
+        print(proxy_orchestrator)
+
         adapter.activate()
         self.shutdownOnInterrupt()
         broker.waitForShutdown()

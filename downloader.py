@@ -2,27 +2,40 @@
 # -*- coding: utf-8; mode: python; -*-
 
 '''
-Downloader
+Downloader: Servidor
 '''
 
-import youtube_dl
-import os.path
 import sys
-import Ice
+import hashlib
+import os.path
+import youtube_dl #pylint: disable=E0401
+import Ice # pylint: disable=E0401,E0401
+import IceStorm
 Ice.loadSlice('trawlnet.ice')
-import TrawlNet
+import TrawlNet # pylint: disable=E0401,C0413
 
-class Downloader(TrawlNet.Downloader):
+
+class Downloader(TrawlNet.Downloader):  # pylint: disable=R0903
     '''
-    DownloaderI
+    DownloaderImplementacion
     '''
-    def addDownloadTask(self, url, current=None):
+    def addDownloadTask(self, url, current=None): # pylint: disable=C0103, R0201, W0613
         '''
         addDownloadTask
         '''
-        print('Downloader -> url: \n',url)
-        print("Descargando.....")
-        return download_mp3(url)
+        file = download_mp3(url)
+        fileInfo = TrawlNet.FileInfo()
+        fileInfo.name = os.path.basename(file)
+        fileInfo.hash = file_hash(fileInfo.name)
+        orchestrators = self.event_file.getPublisher()
+        # Put exception
+        event = TrawlNet.UpdateEventPrx.uncheckedCast(orchestrators)
+        event.newFile(fileInfo)
+        return fileInfo
+
+    def __init__(self, event):
+        self.event_file = event
+
 
 class Server(Ice.Application):
     '''

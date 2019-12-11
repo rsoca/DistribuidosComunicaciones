@@ -27,9 +27,7 @@ class Downloader(TrawlNet.Downloader):  # pylint: disable=R0903
         fileInfo = TrawlNet.FileInfo()
         fileInfo.name = os.path.basename(file)
         fileInfo.hash = file_hash(fileInfo.name)
-        orchestrators = self.event_file.getPublisher()
-        # Put exception
-        event = TrawlNet.UpdateEventPrx.uncheckedCast(orchestrators)
+        orchestrators = self.event_file.getPublisher()        event = TrawlNet.UpdateEventPrx.uncheckedCast(orchestrators)
         event.newFile(fileInfo)
         return fileInfo
 
@@ -110,6 +108,16 @@ def download_mp3(url, destination='./'):
     filename = task_status['filename']
     filename = filename[:filename.rindex('.') + 1]
     return filename + options['postprocessors'][0]['preferredcodec']
+
+def file_hash(filename):
+    '''
+    Hash files
+    '''
+    fileHash = hashlib.sha256()
+    with open(filename, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b''):
+            fileHash.update(chunk)
+    return fileHash.hexdigest()
 
 SERVER = Server()
 sys.exit(SERVER.main(sys.argv))

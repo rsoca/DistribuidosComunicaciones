@@ -1,3 +1,8 @@
 #!/bin/sh
+#
 
-./cliente.py "$1" "$2"
+PYTHON=python3
+
+CLIENT_CONFIG=serv.config
+
+$PYTHON client.py --Ice.Config=$CLIENT_CONFIG "$1" "$2"

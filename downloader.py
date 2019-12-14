@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8; mode: python; -*-
+# -*- coding: utf-8 -*-
 
 '''
 Downloader: Servidor
@@ -14,20 +14,21 @@ import IceStorm
 Ice.loadSlice('trawlnet.ice')
 import TrawlNet # pylint: disable=E0401,C0413
 
-
-class Downloader(TrawlNet.Downloader):  # pylint: disable=R0903
+class DownloaderI(TrawlNet.Downloader):  # pylint: disable=R0903
     '''
-    DownloaderImplementacion
+    DownloaderImplementation
     '''
     def addDownloadTask(self, url, current=None): # pylint: disable=C0103, R0201, W0613
         '''
-        addDownloadTask
+        Add Download Task
         '''
         file = download_mp3(url)
         fileInfo = TrawlNet.FileInfo()
         fileInfo.name = os.path.basename(file)
         fileInfo.hash = file_hash(fileInfo.name)
-        orchestrators = self.event_file.getPublisher()        event = TrawlNet.UpdateEventPrx.uncheckedCast(orchestrators)
+        orchestrators = self.event_file.getPublisher()
+        # Put exception
+        event = TrawlNet.UpdateEventPrx.uncheckedCast(orchestrators)
         event.newFile(fileInfo)
         return fileInfo
 
@@ -35,46 +36,27 @@ class Downloader(TrawlNet.Downloader):  # pylint: disable=R0903
         self.event_file = event
 
 
-class Server(Ice.Application):
-    '''
-    Server Downloader
-    '''
-    def run(self, argv):
-        '''
-        Iniciar server downloader Ice
-        '''
-        dw = Downloader()
-        broker = self.communicator()
-        adapter = broker.createObjectAdapter("DownloaderAdapter")
-        downloader = adapter.add(dw, broker.stringToIdentity("downloader"))
-        print(downloader, flush=True)
-        adapter.activate()
-        self.shutdownOnInterrupt()
-        broker.waitForShutdown()
-        return 0
-
 class NullLogger:
     '''
     NullLogger
     '''
     def debug(self, msg):
         '''
-        Debug
+        debug method
         '''
         pass
 
     def warning(self, msg):
         '''
-        Warning
+        warning method
         '''
         pass
 
     def error(self, msg):
         '''
-        Error
+        error method
         '''
         pass
-
 
 _YOUTUBEDL_OPTS_ = {
     'format': 'bestaudio/best',
@@ -119,5 +101,39 @@ def file_hash(filename):
             fileHash.update(chunk)
     return fileHash.hexdigest()
 
-SERVER = Server()
-sys.exit(SERVER.main(sys.argv))
+
+
+class Server(Ice.Application): # pylint: disable=R0903
+    '''
+    Server
+    '''
+    def run(self, argv): # pylint: disable=W0613
+        '''
+        Run Server
+        '''
+        key = 'IceStorm.TopicManager.Proxy'
+        proxy = self.communicator().propertyToProxy(key)
+        if proxy is None:
+            return None
+        topic_mgr = IceStorm.TopicManagerPrx.checkedCast(proxy)
+        if not topic_mgr:
+            return 2
+
+        topic_name = "UpdateEvents"
+        try:
+            topic_update = topic_mgr.retrieve(topic_name)
+        except IceStorm.NoSuchTopic:
+            topic_update = topic_mgr.create(topic_name)
+
+        downloader = DownloaderI(topic_update)
+        broker = self.communicator()
+        adapter = broker.createObjectAdapter("DownloaderAdapter")
+        proxy = adapter.add(downloader, broker.stringToIdentity("dwn"))
+        print(proxy, flush=True)
+        adapter.activate()
+        self.shutdownOnInterrupt()
+        broker.waitForShutdown()
+        return 0
+
+DOWN = Server()
+sys.exit(DOWN.main(sys.argv))

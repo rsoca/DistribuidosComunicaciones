@@ -1,121 +1,175 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+ #!/usr/bin/env python3
+# -*- coding: utf-8; mode: python; -*-
 
-'''
-Orchestrator
-'''
-
+import re
 import sys
-import Ice # pylint: disable=E0401,E0401
+import Ice # pylint: disable=E0401
 import IceStorm
 Ice.loadSlice('trawlnet.ice')
 import TrawlNet # pylint: disable=E0401,C0413
 
-class UpdateEventI(TrawlNet.UpdateEvent):
-    files = {}
 
-    def newFile(self, fileInfo, current=None):
-        fileHash = fileInfo.hash
-        if fileHash not in self.files:
-            print(fileInfo.name)
-            print(fileInfo.hash)
-            self.files[fileHash] = fileInfo.name
-
-class OrchestratorI(TrawlNet.Orchestrator): #pylint: disable=R0903
+    
+class OrchestratorEventI(TrawlNet.OrchestratorEvent):
     '''
-    Orchestrator Module
+    OrchestratorEventI
     '''
-    files = {}
+    orchestrator = None
 
-    def announce(self, orchestrator, current=None):
-        print("Recibido ",orchestrator)
+    def hello(self, orchestrator, current=None):
+        ''' Saludo '''
+        if self.orchestrator:
+            self.orchestrator.decir_hola(orchestrator)
 
-    def __init__(self, files):
-        self.files = files
+class FileUpdatesEventI(TrawlNet.UpdateEvent):
+    '''
+    FileUpdatesEventI
+    '''
+    orchestrator = None
 
-    def setParams(self, downloader, topic_orch, prx):
-        self.prx = prx
-        orchestrators = topic_orch.getPublisher()
-        self.downloader = downloader
-        subscritos = TrawlNet.OrchestratorEventPrx.uncheckedCast(orchestrators)
-        subscritos.hello(TrawlNet.OrchestratorPrx.checkedCast(self.prx))
+    def newFile(self, file_info, current=None):
+        '''newFile'''
+        if self.orchestrator:
+            file_hash = file_info.hash
+            if file_hash not in self.orchestrator.files_update:
+                print(file_info.name)
+                print(file_info.hash)
+                self.orchestrator.files_update[file_hash] = file_info.name
+
+
+class OrchestratorI(TrawlNet.Orchestrator):
+    '''
+    OrchestratorI
+    '''
+    orchestrator = None
+
+    def downloadTask(self, url, current=None):
+        ''' downloadTask '''
+        if self.orchestrator:
+            return self.orchestrator.call_downloadTask(url)
 
     def getFileList(self, current=None):
-        songs = []
-        for fileHash in self.files:
-            fileInfo = TrawlNet.FileInfo()
-            fileInfo.hash = fileHash
-            fileInfo.name = self.files[fileHash]
-            songs.append(fileInfo)
-        return songs
+        ''' getFileList '''
+        if self.orchestrator:
+            return self.orchestrator.obtener_lista_canciones()
+    
+        return []
 
-    def downloadTask(self, url, current=None): # pylint: disable=C0103, W0613
-        print(url)
+    def announce(self, orchestrator, current=None):
+        ''' Announce '''
+        if self.orchestrator:
+            self.orchestrator.nuevo_orchestrator(orchestrator)
+
+
+class ManageOrchestrators():
+
+    ''' Manage Orchestrators class '''
+
+    qos = {}
+    orchestrators_dict = {}
+    files_update = {}
+    file_list = []
+
+    def __init__(self, broker, downloader_proxy, topic_update, topic_orchestrator):
+        ''' Constructor '''
+        self.adapter = broker.createObjectAdapter("OrchestratorAdapter")
+        self.crear_orchestrator(broker, downloader_proxy, topic_update, topic_orchestrator)
+        self.downloader = TrawlNet.DownloaderPrx.checkedCast(broker.stringToProxy(downloader_proxy))
+        self.topic_orchestrator = topic_orchestrator
+        self.file_topic = topic_update
+        self.crear_orchestrator_event()
+        self.crear_file_update_event()
+
+    
+    def crear_orchestrator(self, broker, downloader_proxy, topic_update, topic_orchestrator):
+        ''' Crear orchestrator'''
+        self.orchestrator = OrchestratorI()
+        self.orchestrator.orchestrator = self
+        self.proxy_orchestrator = self.adapter.addWithUUID(self.orchestrator)
+
+    def crear_orchestrator_event(self):
+        ''' Crear Orchestrator Event '''
+        self.subscriptor = OrchestratorEventI()
+        self.subscriptor.orchestrator = self
+        self.proxy_subscriptor = self.adapter.addWithUUID(self.subscriptor)
+        self.topic_orchestrator.subscribeAndGetPublisher(self.qos, self.proxy_subscriptor)
+        self.publisher = TrawlNet.OrchestratorEventPrx.uncheckedCast(self.topic_orchestrator.getPublisher())
+
+    def crear_file_update_event(self):
+        ''' Crear FileUpdatesEventI '''
+        self.file_updates = FileUpdatesEventI()
+        self.file_updates.orchestrator = self
+        self.file_updates_proxy = self.adapter.addWithUUID(self.file_updates)
+        self.file_topic.subscribeAndGetPublisher(self.qos, self.file_updates_proxy)
+
+    def call_downloadTask(self, url):
+        ''' envio downloadTask '''
         return self.downloader.addDownloadTask(url)
 
+    def decir_hola(self, orchestrator):
+        ''' Decir hola a un orchestrator'''
+        if orchestrator.ice_toString() in self.orchestrators_dict:
+            return
+        print("Hola! soy el orchestrator %s" % orchestrator.ice_toString())
+        self.orchestrators_dict[orchestrator.ice_toString()] = orchestrator
+        orchestrator.announce(TrawlNet.OrchestratorPrx.checkedCast(self.proxy_orchestrator))
 
-class OrchestratorEventI(TrawlNet.OrchestratorEvent):
-    def hello(self, orchestrator, current=None):
-        orchestrator.announce(orchestrator)
+    def nuevo_orchestrator(self, orchestrator):
+        if orchestrator.ice_toString() in self.orchestrators_dict:
+            return
+        print("Hola! yo soy %s" % orchestrator.ice_toString())
+        self.orchestrators_dict[orchestrator.ice_toString()] = orchestrator
+
+    def lanzar(self):
+        ''' Activar adaptador y lanzar hello orchestrator '''
+        self.adapter.activate()
+        self.publisher.hello(TrawlNet.OrchestratorPrx.checkedCast(self.proxy_orchestrator))
+
+    def obtener_lista_canciones(self):
+        ''' Obtener lista '''
+        for fhash in self.files_update:
+            file_info_object = TrawlNet.FileInfo()
+            file_info_object.hash = fhash
+            file_info_object.name = self.files_update[fhash]
+            self.file_list.append(file_info_object)
+        return self.file_list
+
+    def __str__(self):
+        ''' to str '''
+        return str(self.proxy_subscriptor)
 
 
 class Server(Ice.Application):  #pylint: disable=R0903
     '''
     Servidor
     '''
-    files = {}
     def run(self, argv):
         '''
-        Iniciar servidor
+        Init
         '''
-        key = "IceStorm.TopicManager.Proxy"
-        topic_name = "UpdateEvents"
-        topic_orchestrator = "OrchestratorSync"
-        qos_orch = {}
-        qos = {}
-        proxy = self.communicator().propertyToProxy(key)
-        print("Using IceStorm in '%s'" % key)
-
+        key = 'IceStorm.TopicManager.Proxy'
+        topic_name_file = "UpdateEvents"
+        topic_name_orchestrator = "OrchestratorSync"
+        broker = self.communicator()
+        proxy = broker.propertyToProxy(key)
         if proxy is None:
             return None
-        topic_mgr = IceStorm.TopicManagerPrx.checkedCast(proxy)
+        topic_mgr = IceStorm.TopicManagerPrx.checkedCast(proxy) # pylint: disable=E1101
         if not topic_mgr:
-            print("Invalid proxy")
             return 2
-
-        broker = self.communicator()
-        proxy = broker.stringToProxy(argv[1])
-        downloader_instance = TrawlNet.DownloaderPrx.checkedCast(proxy)
-        if not downloader_instance:
-            raise RuntimeError('Invalid proxy')
-
-        updateEvent = UpdateEventI()
-
-        files = updateEvent.files
-        adapter = broker.createObjectAdapter("OrchestratorAdapter")
-        event_ficheros = adapter.addWithUUID(updateEvent)
+     
+        try:
+            topic_update_event = topic_mgr.retrieve(topic_name_file)
+        except IceStorm.NoSuchTopic: # pylint: disable=E1101
+            topic_update_event = topic_mgr.create(topic_name_file)
 
         try:
-            topic = topic_mgr.retrieve(topic_name)
-        except IceStorm.NoSuchTopic:
-            topic = topic_mgr.create(topic_name)
+            topic_orchestrator_event = topic_mgr.retrieve(topic_name_orchestrator)
+        except IceStorm.NoSuchTopic: # pylint: disable=E1101
+            topic_orchestrator_event = topic_mgr.create(topic_name_orchestrator)
 
-        topic.subscribeAndGetPublisher(qos, event_ficheros)
-        evtorchestrators = OrchestratorEventI()
-        evt_orchestrators = adapter.addWithUUID(evtorchestrators)
-
-        try:
-            topicorch = topic_mgr.retrieve(topic_orchestrator)
-        except IceStorm.NoSuchTopic:
-            topicorch = topic_mgr.create(topic_orchestrator)
-
-        topicorch.subscribeAndGetPublisher(qos_orch, evt_orchestrators)
-        orchestrator = OrchestratorI(files)
-        proxy_orchestrator = adapter.add(orchestrator, broker.stringToIdentity("orchestrator"))
-        orchestrator.setTopicandDownloader(downloader_instance, topicorch, proxy_orchestrator)
-        print(proxy_orchestrator)
-
-        adapter.activate()
+        orchestrator = ManageOrchestrators(broker, argv[1], topic_update_event, topic_orchestrator_event)
+        orchestrator.lanzar()
         self.shutdownOnInterrupt()
         broker.waitForShutdown()
         return 0

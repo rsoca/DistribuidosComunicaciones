@@ -5,7 +5,7 @@ Implementacion Client.py
 '''
 
 import sys
-import Ice # pylint: disable=E0401,E0401
+import Ice # pylint: disable=E0401
 Ice.loadSlice('trawlnet.ice')
 import TrawlNet # pylint: disable=E0401,C0413
 
@@ -28,10 +28,10 @@ class Client(Ice.Application):
             raise RuntimeError("Invalid proxy")
 
         if(len(argv)==2):
-            self.lista = orchest.getFileList
+            self.lista = orchest.getFileList()
             print(self.lista)
-            sys.exit()
-        else:
+            sys.exit
+        elif(len(argv)>=3):
             respuesta = orchest.downloadTask(argv[2])
             print(respuesta)
 

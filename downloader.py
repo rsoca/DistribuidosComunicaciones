@@ -2,11 +2,10 @@
 # -*- coding: utf-8 -*-
 
 '''
-Downloader: Servidor
+Downloader Implementation
 '''
 
 import sys
-import hashlib
 import os.path
 import youtube_dl #pylint: disable=E0401
 import Ice # pylint: disable=E0401,E0401
@@ -16,24 +15,80 @@ import TrawlNet # pylint: disable=E0401,C0413
 
 class DownloaderI(TrawlNet.Downloader):  # pylint: disable=R0903
     '''
-    DownloaderImplementation
+    DownloaderI
     '''
+    publicador = None
+    
+    def __init__(self, publicador):
+        '''
+        Constructor
+        '''
+        self.publicador = publicador
+
     def addDownloadTask(self, url, current=None): # pylint: disable=C0103, R0201, W0613
         '''
-        Add Download Task
+        addDownloadTask
         '''
-        file = download_mp3(url)
-        fileInfo = TrawlNet.FileInfo()
-        fileInfo.name = os.path.basename(file)
-        fileInfo.hash = file_hash(fileInfo.name)
-        orchestrators = self.event_file.getPublisher()
-        # Put exception
-        event = TrawlNet.UpdateEventPrx.uncheckedCast(orchestrators)
-        event.newFile(fileInfo)
-        return fileInfo
+        try:
+            archivo = download_mp3(url)
+        except:
+            raise TrawlNet.DownloadError("Error en la descarga del video")
 
-    def __init__(self, event):
-        self.event_file = event
+        file_objet = TrawlNet.FileInfo()
+        file_objet.name = os.path.basename(archivo)
+        file_objet.hash = url_hash(url)
+
+        if self.publicador is not None:
+            self.publicador.newFile(file_objet)
+            
+        return file_objet
+
+def url_hash(url):
+    '''
+    Create hash from url youtube
+    '''
+    with youtube_dl.YoutubeDL(_YOUTUBEDL_OPTS_) as ytb:
+        info_dict = ytb.extract_info(url, download=False)
+    return info_dict['id']
+
+
+class Server(Ice.Application): # pylint: disable=R0903
+    '''
+    Server
+    '''
+
+    def run(self, argv): # pylint: disable=W0613,W0221
+        '''
+        run server
+        '''
+        self.key = 'IceStorm.TopicManager.Proxy'
+        self.topic_name = "UpdateEvents"
+        broker = self.communicator()
+        self.proxy_icestorm = broker.propertyToProxy(self.key)
+
+        if self.proxy_icestorm is None:
+            print("Proxy no valido")
+            return None
+
+        topic_mgr = IceStorm.TopicManagerPrx.checkedCast(self.proxy_icestorm) # pylint: disable=E1101
+
+        if not topic_mgr:
+            print("Topic mgr no valido")
+            return 2
+        try:
+            file_event = topic_mgr.retrieve(self.topic_name)
+        except IceStorm.NoSuchTopic: # pylint: disable=E1101
+            file_event = topic_mgr.create(self.topic_name)
+        
+        adapter = broker.createObjectAdapter("DownloaderAdapter")
+        publicador = file_event.getPublisher()
+        downloader = DownloaderI(TrawlNet.UpdateEventPrx.uncheckedCast(publicador)) 
+        proxy_downloader = adapter.add(downloader, broker.stringToIdentity("downloader"))
+        print(proxy_downloader, flush=True)
+        adapter.activate()
+        self.shutdownOnInterrupt()
+        broker.waitForShutdown()
+        return 0
 
 
 class NullLogger:
@@ -91,49 +146,7 @@ def download_mp3(url, destination='./'):
     filename = filename[:filename.rindex('.') + 1]
     return filename + options['postprocessors'][0]['preferredcodec']
 
-def file_hash(filename):
-    '''
-    Hash files
-    '''
-    fileHash = hashlib.sha256()
-    with open(filename, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b''):
-            fileHash.update(chunk)
-    return fileHash.hexdigest()
 
-
-
-class Server(Ice.Application): # pylint: disable=R0903
-    '''
-    Server
-    '''
-    def run(self, argv): # pylint: disable=W0613
-        '''
-        Run Server
-        '''
-        key = 'IceStorm.TopicManager.Proxy'
-        proxy = self.communicator().propertyToProxy(key)
-        if proxy is None:
-            return None
-        topic_mgr = IceStorm.TopicManagerPrx.checkedCast(proxy)
-        if not topic_mgr:
-            return 2
-
-        topic_name = "UpdateEvents"
-        try:
-            topic_update = topic_mgr.retrieve(topic_name)
-        except IceStorm.NoSuchTopic:
-            topic_update = topic_mgr.create(topic_name)
-
-        downloader = DownloaderI(topic_update)
-        broker = self.communicator()
-        adapter = broker.createObjectAdapter("DownloaderAdapter")
-        proxy = adapter.add(downloader, broker.stringToIdentity("dwn"))
-        print(proxy, flush=True)
-        adapter.activate()
-        self.shutdownOnInterrupt()
-        broker.waitForShutdown()
-        return 0
-
-DOWN = Server()
-sys.exit(DOWN.main(sys.argv))
+    
+DOWNLOADER = Server()
+sys.exit(DOWNLOADER.main(sys.argv))

@@ -15,6 +15,13 @@ En el manual se indica el enunciado del problema y como resolverlo, además de u
 
 ### Enunciado
 
+En la tercera fase el sistema se compondrá de un cliente, tres orchestrators, una factoría de downloaders y una factoría de transfers. El cliente tendrá que mandar un URL en forma de string a uno de los orchestrators que, a su vez, redirigirá la petición a un downloader creado a tal efecto siempre que el fichero de audio no haya sido descargado previamente en el sistema. El downloader descargará el archivo y notificará que se ha descargado correctamente en un canal de eventos para que todos los orchestrators sepan que el fichero existe, mandando la información de ese fichero. Al terminar se destruirá.
+
+El cliente podrá solicitar la lista de ficheros descargados a uno de los orchestrators.
+
+Además, el cliente también tendrá la opción de pedir la transferencia de un archivo de audio. Hará la petición a uno de los orchestrators que, a su vez, redirigirá la petición a un transfer creado a efecto siempre que el fichero de audio haya sido descargado previamente en el sistema. El transfer le mandará directamente al cliente el archivo. Al terminar se destruirá.
+Los orchestrators se anunciarán al resto de orchestrators en su creación, que se anunciarán a su vez al nuevo orchestrator para actualizar las listas de orchestrators existentes de cada objeto. Además, un nuevo orchestrator ha de ser consciente de los ficheros de audio que ya han sido descargados en el sistema.
+
 ### Ejecución
 
 **Parte del servidor**

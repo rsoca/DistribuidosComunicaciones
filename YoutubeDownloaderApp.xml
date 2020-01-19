@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- This file was written by IceGrid GUI -->
+<icegrid>
+   <application name="YoutubeDownloaderApp">
+      <distrib icepatch="${application}.IcePatch2/server"/>
+      <service-template id="IceStorm">
+         <parameter name="instance-name" default="${application}.IceStorm"/>
+         <parameter name="topic-manager-endpoints" default="default"/>
+         <parameter name="publish-endpoints" default="default"/>
+         <parameter name="flush-timeout" default="1000"/>
+         <service name="${instance-name}" entry="IceStormService,37:createIceStorm">
+            <properties>
+               <property name="${service}.LMDB.Path" value="${service.data}"/>
+               <property name="${service}.InstanceName" value="${instance-name}"/>
+               <property name="${service}.Flush.Timeout" value="${flush-timeout}"/>
+            </properties>
+            <adapter name="${service}.Publish" endpoints="${publish-endpoints}" id="${instance-name}.Publish"/>
+            <adapter name="${service}.TopicManager" endpoints="${topic-manager-endpoints}" id="${instance-name}.TopicManager">
+               <object identity="${instance-name}/TopicManager" type="::IceStorm::TopicManager"/>
+            </adapter>
+         </service>
+      </service-template>
+      <server-template id="IcePatch2">
+         <parameter name="instance-name" default="${application}.IcePatch2"/>
+         <parameter name="endpoints" default="default"/>
+         <parameter name="directory" default="/tmp/YoutubeDownloaderApp"/>
+         <server id="${instance-name}" activation="on-demand" application-distrib="false" exe="icepatch2server">
+            <properties>
+               <property name="IcePatch2.InstanceName" value="${instance-name}"/>
+               <property name="IcePatch2.Directory" value="${directory}"/>
+            </properties>
+            <adapter name="IcePatch2" endpoints="${endpoints}" id="${server}.IcePatch2">
+               <object identity="${instance-name}/server" type="::IcePatch2::FileServer"/>
+            </adapter>
+         </server>
+      </server-template>
+      <server-template id="IceStorm">
+         <parameter name="instance-name" default="${application}.IceStorm"/>
+         <parameter name="topic-manager-endpoints" default="default"/>
+         <parameter name="publish-endpoints" default="default"/>
+         <parameter name="flush-timeout" default="1000"/>
+         <icebox id="${instance-name}" activation="on-demand" exe="icebox">
+            <service-instance template="IceStorm" instance-name="${instance-name}" topic-manager-endpoints="${topic-manager-endpoints}" publish-endpoints="${publish-endpoints}" flush-timeout="${flush-timeout}"/>
+         </icebox>
+      </server-template>
+      <server-template id="Orchestrator">
+         <parameter name="id"/>
+         <parameter name="instance-name" default="Orchestrator"/>
+         <server id="${instance-name}${id}" activation="manual" exe="./orchestrator.py" pwd="${application.distrib}">
+            <properties>
+               <property name="Ice.StdOut" value="/tmp/db/orchestrator-node/orchestrator${id}.out"/>
+               <property name="Ice.StdErr" value="/tmp/db/orchestrator-node/orchestrator${id}.err"/>
+               <property name="DownloaderFactoryIdentity" value="downloaderfactory"/>
+               <property name="Identity" value="orchestrator"/>
+            </properties>
+            <adapter name="OrchestratorAdapter" endpoints="tcp" id="${server}.OrchestratorAdapter" replica-group="OrchestratorReplicaGroup"/>
+         </server>
+      </server-template>
+      <replica-group id="OrchestratorReplicaGroup">
+         <load-balancing type="ordered" n-replicas="1"/>
+         <object identity="orchestrator"/>
+      </replica-group>
+      <node name="downloads-node">
+         <server id="DownloaderFactory" activation="manual" exe="./downloader_factory.py" pwd="${application.distrib}">
+            <properties>
+               <property name="Ice.StdOut" value="/tmp/db/downloads-node/downloaderfactory.out"/>
+               <property name="Ice.StdErr" value="/tmp/db/downloads-node/downloaderfactory.err"/>
+            </properties>
+            <adapter name="DownloaderAdapter" endpoints="tcp" id="${server}.DownloaderAdapter">
+               <object identity="downloaderfactory" property="DownloaderFactoryIdentity"/>
+            </adapter>
+         </server>
+         <server id="TransferFactory" activation="manual" exe="./transfer_factory.py" pwd="${application.distrib}">
+            <properties>
+               <property name="Ice.StdOut" value="/tmp/db/downloads-node/transferfactory.out"/>
+               <property name="Ice.StdErr" value="/tmp/db/downloads-node/transferfactory.err"/>
+            </properties>
+            <adapter name="TransferAdapter" endpoints="tcp" id="${server}.TransferAdapter">
+               <object identity="transferfactory" property="TransferFactoryIdentity"/>
+            </adapter>
+         </server>
+      </node>
+      <node name="orchestrator-node">
+         <server-instance template="Orchestrator" id="1">
+            <properties>
+               <property name="DownloaderFactoryIdentity" value="downloaderfactory"/>
+               <property name="TransferFactoryIdentity" value="transferfactory"/>
+            </properties>
+         </server-instance>
+         <server-instance template="Orchestrator" id="2">
+            <properties>
+               <property name="DownloaderFactoryIdentity" value="downloaderfactory"/>
+               <property name="TransferFactoryIdentity" value="transferfactory"/>
+            </properties>
+         </server-instance>
+         <server-instance template="Orchestrator" id="3">
+            <properties>
+               <property name="DownloaderFactoryIdentity" value="downloaderfactory"/>
+               <property name="TransferFactoryIdentity" value="transferfactory"/>
+            </properties>
+         </server-instance>
+      </node>
+      <node name="registry-node">
+         <server-instance template="IcePatch2" directory="/tmp/YoutubeDownloaderApp"/>
+         <server-instance template="IceStorm"/>
+      </node>
+   </application>
+</icegrid>

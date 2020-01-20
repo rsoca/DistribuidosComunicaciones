@@ -11,7 +11,7 @@ Grupo: SocaciuRuiz
 https://github.com/rsoca/SocaciuRuiz/tree/entrega-3
 
 ## Manual de usuario
-En el manual se indica el enunciado del problema y como resolverlo, además de un ejemplo de ejecución simple
+En el manual se indica el enunciado del problema y la ejecución de la solución a este.
 
 ### Enunciado
 
@@ -24,51 +24,99 @@ Los orchestrators se anunciarán al resto de orchestrators en su creación, que 
 
 ### Ejecución
 
-**Parte del servidor**
+Para la ejecución de la practica debemos realizar los siguientes pasos: 
 
-1) Ejecutar el comando
+** 1º - Ejecutar Makefile **
+
+	Abrimos un terminal y nos dirigimos a nuestra carpeta que contiene el proyecto y procedemos a ejecutar el comando: 
+
 ```
 make run
 ```
-2) Ejecutar interfaz de ice
+
+Con esto ejecutaremos los nodos. 
+
+** 2º - Ejecutar interfaz **
+
+	Abrimos otro terminal y nos volvemos a dirigir a la carpeta que contiene nuestro proyecto. 
+A continuación, ejecutaremos la interfaz de Ice mediante el comando:
+
 ```
 icegridgui
 ```
 
-**Parte del cliente**
+Y se nos abria el programa. 
 
-Ejecutamos el siguiente comando, que probará todas las peticiones disponibles al orchestrator.
+** 3º - Apertura archivo YoutubeDownloaderApp.xml **
+
+	Nos dirigiremos a la pestaña de arriba “File”, le daremos click, bajaremos hasta “Open” y seleccionaremos “Application from File”. Le daremos click y nos dirigiremos a la carpeta donde tendremos nuestro archivo “YoutubeDownloaderApp.xml”, lo seleccionaremos y le daremos a abrir. 
+
+** 4º - Creación de la conexión ** 
+
+Pasos a seguir son: 
+
+* - Pulsaremos sobre el botón que tendremos a la izquierda arriba llamado “Los into an IceGrid Registry”.
+* - Se nos abre una ventana, y a la derecha encontraremos una casilla que pone “New Connection” y le daremos click.
+* - En la siguiente ventana seleccionaremos “Direct Connection” y pulsamos “Next” abajo.
+* - En la siguiente ventana nos aparecerá marcada la casilla “Connect to a Master Registry”, la dejaremos seleccionada y pulsaremos “Next”.
+* - En la siguiente ventana nos parecerá la conexion de nuestro equipo, simplemente pulsamos “Next”, y en la siguiente ventana seguimos pulsando “Next”.
+* - Ahora nos aparece un ventana donde debemos introducir un usuario y una contraseña, donde podemos poner lo que queramos, en nuestro caso: Usuario: L3 , contraseña: L3. Y pulsamos “Finalizar”.
+
+** 5º - Save Registry **
+
+	Ahora, estando en la pestaña “YoutubeDownloaderApp” pulsaremos el botón “Save to Registry”. 
+
+** 6º - Distribuir la aplicación **
+
+	Una vez hemos llegado hasta aquí, nos situaremos sobre la pestaña “Live Deployment” y nos iremos a la pestaña “Tools” de arriba. Le damos click, después bajamos a “Application” y le daremos click a “Patch Distribution” se nos abrirá una ventana donde tenemos que seleccionar nuestra aplicación “YoutubeDownloaderApp”, pulsamos “Aceptar”. 
+
+** 7º - Ejecución de los servicios de los nodos **
+
+Para la ejecución de los nodos debemos seguir el siguiente orden: 
+
+* 1º - IceStorm (YoutubeDownloaderApp.IceStorm)
+* 2º - TransferFactory
+* 3º - DownloaderFactory
+* 4º - Los servidores orchestrator (OrchestratorAdapter, cada uno por separado)
+
+La ejecución es tan simple como colocarnos encima del nodo, click derecho y Start.
+
+** 8º - Ejecución del cliente **
+
+	Una vez tengamos todos los pasos anteriores listos y funcionando, solo nos falta ejecutar el cliente. 
+
+Para ello:
+
+- Abrimos otra terminal y nos dirigimos a la carpeta de nuestro proyecto
+- Ejecutamos la siguiente orden:
+
 ```
-./run_client.sh
+./client.py --Ice.Config=client.config "--download" "url_a_descargar" "orchestrator"
 ```
 
-### Componentes
+** 9º - Escuchar la canción **
 
-**Parte del servidor**
+	Para ello debemos tener instalado un reproductor de música, nosotros nos hemos decantado por Sox
 
-1) transfer_factory.py
-  * TransferI
-  * TransferFactoryI
-  * Server
-  * __name__
+Instalación de Sox:
 
-2) downloader_factory.py
-  * DownloadI
-  * Server
-  * NullLogger
+```
+sudo apt-get install sox
+```
 
-3) orchestrator.py
-  * OrchestratorEventI
-  * FileUpdatesEventI
-  * OrchestratorI
-  * ManageOrchestrators
-  * Server
+```
+sudo apt-get install libsox-fmt-all
+```
 
+Nos dirigimos al lugar donde se encuentra las canciones descargadas
 
-**Parte del cliente**
+```
+cd /tmp/db/downloads-node/distrib/YoutubeDownloaderApp/downloads/
+```
+Y ejecutamos el siguiente comando
 
-1) client.py
-  * Client
+```
+play nombre_de_la_cancion
+```
 
-
-
+Para finalizar la reproducción antes de tiempo debemos pulsar Control+C

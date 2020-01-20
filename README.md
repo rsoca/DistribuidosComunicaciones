@@ -26,7 +26,7 @@ Los orchestrators se anunciarán al resto de orchestrators en su creación, que 
 
 Para la ejecución de la practica debemos realizar los siguientes pasos: 
 
-** 1º - Ejecutar Makefile **
+**1º - Ejecutar Makefile**
 
 Abrimos un terminal y nos dirigimos a nuestra carpeta que contiene el proyecto y procedemos a ejecutar el comando: 
 
@@ -36,7 +36,7 @@ make run
 
 Con esto ejecutaremos los nodos. 
 
-** 2º - Ejecutar interfaz **
+**2º - Ejecutar interfaz**
 
 Abrimos otro terminal y nos volvemos a dirigir a la carpeta que contiene nuestro proyecto. 
 A continuación, ejecutaremos la interfaz de Ice mediante el comando:
@@ -47,11 +47,11 @@ icegridgui
 
 Y se nos abria el programa. 
 
-** 3º - Apertura archivo YoutubeDownloaderApp.xml **
+**3º - Apertura archivo YoutubeDownloaderApp.xml**
 
 Nos dirigiremos a la pestaña de arriba “File”, le daremos click, bajaremos hasta “Open” y seleccionaremos “Application from File”. Le daremos click y nos dirigiremos a la carpeta donde tendremos nuestro archivo “YoutubeDownloaderApp.xml”, lo seleccionaremos y le daremos a abrir. 
 
-** 4º - Creación de la conexión ** 
+**4º - Creación de la conexión** 
 
 Pasos a seguir son: 
 
@@ -62,15 +62,15 @@ Pasos a seguir son:
  - En la siguiente ventana nos parecerá la conexion de nuestro equipo, simplemente pulsamos “Next”, y en la siguiente ventana seguimos pulsando “Next”.
  - Ahora nos aparece un ventana donde debemos introducir un usuario y una contraseña, donde podemos poner lo que queramos, en nuestro caso: Usuario: L3 , contraseña: L3. Y pulsamos “Finalizar”.
 
-** 5º - Save Registry **
+**5º - Save Registry**
 
 Ahora, estando en la pestaña “YoutubeDownloaderApp” pulsaremos el botón “Save to Registry”. 
 
-** 6º - Distribuir la aplicación **
+**6º - Distribuir la aplicación**
 
 Una vez hemos llegado hasta aquí, nos situaremos sobre la pestaña “Live Deployment” y nos iremos a la pestaña “Tools” de arriba. Le damos click, después bajamos a “Application” y le daremos click a “Patch Distribution” se nos abrirá una ventana donde tenemos que seleccionar nuestra aplicación “YoutubeDownloaderApp”, pulsamos “Aceptar”. 
 
-** 7º - Ejecución de los servicios de los nodos **
+**7º - Ejecución de los servicios de los nodos**
 
 Para la ejecución de los nodos debemos seguir el siguiente orden: 
 
@@ -81,7 +81,7 @@ Para la ejecución de los nodos debemos seguir el siguiente orden:
 
 La ejecución es tan simple como colocarnos encima del nodo, click derecho y Start.
 
-** 8º - Ejecución del cliente **
+**8º - Ejecución del cliente**
 
 Una vez tengamos todos los pasos anteriores listos y funcionando, solo nos falta ejecutar el cliente. 
 
@@ -94,7 +94,7 @@ Para ello:
 ./client.py --Ice.Config=client.config "--download" "url_a_descargar" "orchestrator"
 ```
 
-** 9º - Escuchar la canción **
+**9º - Escuchar la canción**
 
 Para ello debemos tener instalado un reproductor de música, nosotros nos hemos decantado por Sox
 

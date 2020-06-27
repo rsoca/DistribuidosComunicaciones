@@ -42,7 +42,7 @@ Otro fallo a controlar es que no tengamos la carpeta correspondiente para meter 
 La carpeta se debe llamar " files " y estar en el mismo lugar que los demas archivos. 
 
 
-**3º - Ejecucion del cliente**
+**3º - Ejecucion del cliente en terminal 2**
 
 En la terminal numero dos lo que vamos a hacer es invocar el cliente mediante el comando de mas abajo. En el comando se puede apreciar como se indican entre comillas simples se indica el nombre del archivo que queremos recibir del servidor. Aqui debemos tener especial cuidado puesto que a veces el nombre puede llevar o no la extension del tipo de archivo, asi que debemos ver segun el sistema operativo si la extension del archivo se debe poner o no. 
 Destacar que se pueden solicitar cuantos archios se quiera. 

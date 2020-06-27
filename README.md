@@ -1,4 +1,4 @@
-## Practica Extraordinaria Sistemas Distrbuidos 19/20
+## Practica Extraordinaria Sistemas Distribuidos 19/20
 
 Grupo: SocaciuRuiz
 

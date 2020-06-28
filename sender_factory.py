@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3 -u
 # -*- coding: utf-8 -*-
 
 '''
@@ -8,10 +8,10 @@ Implementacion Sender Factory
 import os
 import sys
 import Ice
+import IceStorm
 import binascii
 import IceGrid
 Ice.loadSlice('trawlnet.ice')
-#pylint: disable=E0401, C0413, W0613
 import TrawlNet
 
 ROOTS = './'
@@ -31,7 +31,7 @@ class SenderI(TrawlNet.Sender):
 		self.file.close()
 
 	def destroy(self, current=None):
-		print('Destroy the conexion')
+		print('Destroy the sender conexion')
 		current.adapter.remove(current.id)
 
 class SenderFactoryI(TrawlNet.SenderFactory):
@@ -47,6 +47,16 @@ class SenderFactoryI(TrawlNet.SenderFactory):
 		return obj_sender
 
 class Server(Ice.Application):
+	def get_topic_manager(self):
+		key = 'IceStorm.TopicManager.Proxy'
+		proxy = self.communicator().propertyToProxy(key)
+		if proxy is None:
+			print("Property '{}' not set".format(key))
+		return None
+
+		print("Using IceStorm in: '%s'" % key)
+		return IceStorm.TopicManagerPrx.checkedCast(proxy)
+
 	def run(self, argv):
 		broker = self.communicator()
 		sender_servant = SenderFactoryI()

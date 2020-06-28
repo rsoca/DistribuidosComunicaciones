@@ -2,17 +2,18 @@
 #
 
 echo "Creating directories..."
-mkdir -p db/Registry
-mkdir -p IceStorm/ 
+mkdir -p db/Registry 
+mkdir -p IceStorm/
 
 echo "Exec registry"
 icegridregistry --Ice.Config=registry.config &
 sleep 1
 
 echo "Exec icestorm"
-icebox --Ice.Config = icebox.config &
+icebox --Ice.Config=icebox.config &
 sleep 1
 
+echo "Exec server-side elements"
 ./sender_factory.py --Ice.Config=senders.config files/ &
 sleep 1
 ./transfers_manager.py --Ice.Config=transfers.config

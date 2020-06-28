@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3 -u
 # -*- coding: utf-8 -*-
 
 '''
@@ -7,19 +7,20 @@ Definicion Cliente
 import sys
 import os
 import binascii
-import Ice # pylint: disable=E0401
-import IceStorm
+import Ice 
 Ice.loadSlice('trawlnet.ice')
-import TrawlNet # pylint: disable=E0401,C0413
+import TrawlNet
+import IceStorm
 
 DOWN_DIRECTORY = './downloads/'
 
 class ReceiverI(TrawlNet.Receiver):
 
-	def __init__(self, fileName, sender, transfer):
+	def __init__(self, fileName, sender, transfer):#, peerEvent):
 		self.fileName = fileName
 		self.sender = sender
 		self.transfer = transfer
+		#self.peerEvent = peerEvent
 
 	def start(self,current=None):
 		print('Start the transmision of the file ', self.fileName)
@@ -37,8 +38,12 @@ class ReceiverI(TrawlNet.Receiver):
 				if data:
 					file.write(data)
 			self.sender.close()
+		#peerInfo = TrawlNet.PeerInfo()
+		#peerInfo.transfer = self.transfer
+		#peerInfo.fileName = self.fileName
+		#self.peerEvent.peerFinished(peerInfo)
 
-		print('Transmision finished!')
+		print('Transmision finished')
 
 	def destroy(self, current):
 		print('Destroy the receiver')
@@ -46,10 +51,13 @@ class ReceiverI(TrawlNet.Receiver):
 
 class ReceiverFactoryI(TrawlNet.ReceiverFactory):
 
+	#def __init__(self, peerEvent):
+	#	self.peerEvent = peerEvent
+
 	def create(self, fileName, sender, transfer, current=None):
 		print('Create the receiver factory')
 
-		receiver = ReceiverI(fileName, sender, transfer)
+		receiver = ReceiverI(fileName, sender, transfer)#, self.peerEvent)
 		proxy_receiver = current.adapter.addWithUUID(receiver)
 		obj_receiver = TrawlNet.ReceiverPrx.checkedCast(proxy_receiver)
 
@@ -57,11 +65,34 @@ class ReceiverFactoryI(TrawlNet.ReceiverFactory):
 
 
 class Client(Ice.Application):
+	def get_topic_manager(self):
+		key = 'IceStorm.TopicManager.Proxy'
+		proxy = self.communicator().propertyToProxy(key)
+		if proxy is None:
+			print("Property '{}' not set".format(key))
+		return None
+
+		print("Using IceStorm in: '%s'" % key)
+		return IceStorm.TopicManagerPrx.checkedCast(proxy)
+
 
 	def run(self, argv):
+		'''
+		topic_mgr = self.get_topic_manager()
+
+		topic_name = 'PeerEvent'
+		try:
+			topic = topic_mgr.retrieve(topic_name)
+		except IceStorm.NoSuchTopic:
+			print ('no such topic found, creating')
+			topic = topic_mgr.create(topic_name)
+
+		publisher = topic.getPublisher()
+		peerEvent = TrawlNet.PeerEventPrx.uncheckedCast(publisher)
+		'''
 		#crear proxy del receiverFactory
 		broker = self.communicator()
-		client_servant = ReceiverFactoryI()
+		client_servant = ReceiverFactoryI()#peerEvent)
 		rec_adapter = broker.createObjectAdapter('ReceiverAdapter')
 		rec_proxy = rec_adapter.add(client_servant, broker.stringToIdentity('receiver1'))
 
@@ -93,7 +124,7 @@ class Client(Ice.Application):
 		for i in range(len(receivers_list)):
 			receivers_list[i].start()
 
-		print('Transfers finished')
+		print('Client finished')
 
 		return 0
 
